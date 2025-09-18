@@ -7,6 +7,7 @@ import {
 	injectContent,
 	minify,
 	escAttr,
+	generateCSP,
 } from './utils.js';
 import { processAssets } from './assets.js';
 import { loadTemplateWithExtras, updateHeadPerArticle } from './templates.js';
@@ -104,10 +105,10 @@ async function build() {
 	if (paginated.length > 0) {
 		indexHtml = indexHtml.replace(
 			'</head>',
-			`<link rel="next" href="/page/2/"></head>`
+			`<link rel="next" href="/page/2.html">`
 		);
 
-		const moreBtn = buildMoreBtn('/page/2/');
+		const moreBtn = buildMoreBtn('/page/2.html');
 		indexHtml = indexHtml.replace('</ul>', `</ul>${moreBtn}`);
 	}
 
@@ -125,32 +126,30 @@ async function build() {
 
 			const listHtml = renderLandingList(pageArticles, assetMap);
 
-			const nextPage = i + 1 < paginated.length ? `/page/${i + 3}/` : null;
-			const moreBtn = buildMoreBtn(nextPage);
+			const prevUrl = i === 0 ? '/' : `/page/${i + 1}.html`;
+			const nextUrl = i + 1 < paginated.length ? `/page/${i + 3}.html` : null;
 
+			const moreBtn = nextUrl ? buildMoreBtn(nextUrl) : '';
 			html = injectContent(html, listHtml);
 			html = html.replace('</ul>', `</ul>${moreBtn}`);
 
-			const pageDir = path.join(paths.dist, 'page', String(i + 2));
-			fs.mkdirSync(pageDir, { recursive: true });
-
-			const prevUrl = i === 0 ? '/' : `/page/${i + 1}/`;
-			const nextUrl = nextPage || null;
-			const prevLink = prevUrl ? `<link rel="prev" href="${prevUrl}">` : '';
+			// Canonical + prev/next link tags
+			const prevLink = `<link rel="prev" href="${prevUrl}">`;
 			const nextLink = nextUrl ? `<link rel="next" href="${nextUrl}">` : '';
-			const canonUrl = `${site.origin}/page/${i + 2}/`;
+			const canonUrl = `${site.origin}/page/${i + 2}.html`;
 			const canonLink = `<link rel="canonical" href="${canonUrl}">`;
 
-			html = html.replace(
-				'</head>',
-				`${prevLink}${nextLink}${canonLink}</head>`
-			);
+			if (html.includes('rel="canonical"')) {
+				html = html.replace(/<link[^>]+rel="canonical"[^>]+>/i, canonLink);
+			} else {
+				html = html.replace('</head>', `${canonLink}</head>`);
+			}
 
-			fs.writeFileSync(
-				path.join(pageDir, 'index.html'),
-				await minify(html),
-				'utf-8'
-			);
+			html = html.replace('</head>', `${prevLink}${nextLink}</head>`);
+
+			const pageFile = path.join(paths.dist, 'page', `${i + 2}.html`);
+			fs.mkdirSync(path.dirname(pageFile), { recursive: true });
+			fs.writeFileSync(pageFile, await minify(html), 'utf-8');
 		}
 	}
 
@@ -234,6 +233,17 @@ async function build() {
 	writeRobotsTxt();
 	writeSitemap(articles, paginated.length);
 
+	const icoSrc = path.join(paths.rootDir, 'favicon.ico');
+	const icoDest = path.join(paths.dist, 'favicon.ico');
+
+	if (fs.existsSync(icoSrc)) {
+		fs.copyFileSync(icoSrc, icoDest);
+		console.log('✅ favicon.ico copied to dist');
+	} else {
+		console.warn('⚠️ No favicon.ico found in project root, skipping copy.');
+	}
+
+	generateCSP(paths.dist);
 	console.log('✅ SSG completed');
 }
 

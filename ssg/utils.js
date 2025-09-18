@@ -1,6 +1,8 @@
 import fs from 'fs';
 import crypto from 'crypto';
+import path from 'path';
 import { minify as _minify } from 'html-minifier-terser';
+import { paths } from './config.js';
 
 export function fileHash(input) {
 	const hash = crypto.createHash('md5');
@@ -71,14 +73,14 @@ export function formatDate(isoDate, locale = 'es-ES') {
 
 export function hrefFor(a, base) {
 	if (a.link) return a.link;
-	if (a.isTopLevel) return `/${a.slug}`;
-	return `${base}/${a.slug}`;
+	if (a.isTopLevel) return `/${a.slug}.html`;
+	return `${base}/${a.slug}.html`;
 }
 
 export function absoluteUrlFor(a, origin, base) {
 	if (a.link) return a.link;
-	if (a.isTopLevel) return `${origin}/${a.slug}`;
-	return `${origin}${base}/${a.slug}`;
+	if (a.isTopLevel) return `${origin}/${a.slug}.html`;
+	return `${origin}${base}/${a.slug}.html`;
 }
 
 // Prefer a marker; otherwise inject after </nav>
@@ -104,4 +106,52 @@ export async function minify(html) {
 		minifyCSS: true,
 		minifyJS: true,
 	});
+}
+
+export function generateCSP(distDir) {
+	const indexPath = path.join(distDir, 'index.html');
+	if (!fs.existsSync(indexPath)) {
+		console.warn('⚠️ index.html not found for CSP hash');
+		return;
+	}
+
+	const html = fs.readFileSync(indexPath, 'utf-8');
+
+	const matches = [...html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)];
+	const gaScript = matches
+		.map((m) => m[1].trim())
+		.find((s) => s.includes('gtag('));
+
+	if (!gaScript) {
+		console.warn('⚠️ GA inline snippet not found in index.html');
+		return;
+	}
+
+	const hash = crypto.createHash('sha256').update(gaScript).digest('base64');
+	const cspValue = `'sha256-${hash}'`; // <-- quotes
+
+	const header = [
+		"default-src 'self';",
+		`script-src 'self' https://www.googletagmanager.com https://www.google-analytics.com ${cspValue};`,
+		"connect-src 'self' https://*.google-analytics.com;",
+		"img-src 'self' https://www.google-analytics.com data:;",
+		"style-src 'self' 'unsafe-inline';",
+		"object-src 'none'; frame-ancestors 'none'; base-uri 'self';",
+	].join(' ');
+
+	const cspFile = path.join(process.cwd(), 'csp.json');
+	fs.writeFileSync(
+		cspFile,
+		JSON.stringify(
+			{
+				'ga-snippet': cspValue,
+				'content-security-policy': header,
+			},
+			null,
+			2
+		),
+		'utf-8'
+	);
+
+	console.log('🔒 CSP hash + header written to csp.json');
 }

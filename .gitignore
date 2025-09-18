@@ -14,6 +14,7 @@ yarn-error.log
 
 config.json
 hashes.json
+csp.json
 
 logs/
 *.log

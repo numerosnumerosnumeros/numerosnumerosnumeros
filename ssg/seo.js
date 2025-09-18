@@ -72,7 +72,7 @@ export function writeSitemap(articles, totalPages) {
 		`<url><loc>${site.origin}/</loc><lastmod>${today}</lastmod></url>`,
 		...Array.from({ length: totalPages - 1 }, (_, i) => {
 			const page = i + 2;
-			return `<url><loc>${site.origin}/page/${page}/</loc><lastmod>${today}</lastmod></url>`;
+			return `<url><loc>${site.origin}/page/${page}.html</loc><lastmod>${today}</lastmod></url>`;
 		}),
 		...articles
 			.filter((a) => !a.link)
