@@ -19,7 +19,7 @@ import {
 } from './seo.js';
 import { loadArticles } from './fetch.js';
 
-const ARTICLES_ON_LANDING = 8;
+const ARTICLES_ON_LANDING = 4;
 const ARTICLES_PER_PAGE = 4;
 
 function renderLandingList(articles, assetMap) {
@@ -231,7 +231,7 @@ async function build() {
 	}
 
 	writeRobotsTxt();
-	writeSitemap(articles, paginated.length);
+	writeSitemap(articles, paginated.length + 1);
 
 	const icoSrc = path.join(paths.rootDir, 'favicon.ico');
 	const icoDest = path.join(paths.dist, 'favicon.ico');

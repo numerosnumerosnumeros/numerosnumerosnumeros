@@ -71,7 +71,7 @@ export function writeSitemap(articles, totalPages) {
 	const urls = [
 		`<url><loc>${site.origin}/</loc><lastmod>${today}</lastmod></url>`,
 		...Array.from({ length: totalPages - 1 }, (_, i) => {
-			const page = i + 2;
+			const page = i + 2; // pages start at 2.html
 			return `<url><loc>${site.origin}/page/${page}.html</loc><lastmod>${today}</lastmod></url>`;
 		}),
 		...articles
