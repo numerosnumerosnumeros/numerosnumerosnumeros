@@ -1,0 +1,20 @@
+{
+	"name": "numeros",
+	"version": "1.0.0",
+	"main": "ssg/build.js",
+	"scripts": {
+		"build": "node ssg/build.js",
+		"dev": "chokidar 'templates/*' 'assets/*' 'articles/index/**/*' 'ssg/**/*.js' -c 'node ssg/build.js' & serve dist",
+		"deploy": "./deploy.sh"
+	},
+	"type": "module",
+	"author": "numerosnumerosnumeros.com",
+	"license": "MIT",
+	"devDependencies": {
+		"chokidar-cli": "^3.0.0",
+		"gray-matter": "^4.0.3",
+		"html-minifier-terser": "^7.2.0",
+		"serve": "^14.2.5",
+		"sharp": "^0.34.3"
+	}
+}
