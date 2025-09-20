@@ -1,8 +1,24 @@
 import fs from 'fs';
 import crypto from 'crypto';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { minify as _minify } from 'html-minifier-terser';
-import { paths } from './config.js';
+import { site } from './config.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export function getCssVar(varName) {
+	const cssPath = path.resolve(__dirname, '../assets/main.css');
+	const css = fs.readFileSync(cssPath, 'utf8');
+	const match = css.match(new RegExp(`--${varName}:\\s*([^;]+);`));
+	if (!match) throw new Error(`Variable ${varName} not found`);
+	return match[1].trim();
+}
+
+export function stripHtmlTags(str) {
+	return str.replace(/<[^>]*>/g, '');
+}
 
 export function fileHash(input) {
 	const hash = crypto.createHash('md5');
@@ -94,6 +110,23 @@ export function injectContent(template, html) {
 	}
 	// Fallback before footer
 	return template.replace(/<\/div>\s*<footer>/i, `${html}</div><footer>`);
+}
+
+export function injectRssLink(html) {
+	const rssLink = `<link rel="alternate" type="application/rss+xml" title="${
+		site.title || 'RSS'
+	}" href="${site.origin}/rss.xml">`;
+
+	if (html.includes('type="application/rss+xml"')) {
+		// replace existing
+		return html.replace(
+			/<link[^>]+type="application\/rss\+xml"[^>]*>/i,
+			rssLink
+		);
+	} else {
+		// inject before </head>
+		return html.replace('</head>', `${rssLink}</head>`);
+	}
 }
 
 export async function minify(html) {

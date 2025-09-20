@@ -16,7 +16,7 @@ aws s3 sync "$BUILD_DIR" "s3://$BUCKET" \
   --include "*.html" \
   --include "robots.txt" \
   --include "sitemap.xml" \
-  --cache-control "no-cache, no-store, must-revalidate"
+  --cache-control "no-cache, must-revalidate"
 
 echo "▶️ Uploading long-lived cache assets..."
 aws s3 sync "$BUILD_DIR" "s3://$BUCKET" \

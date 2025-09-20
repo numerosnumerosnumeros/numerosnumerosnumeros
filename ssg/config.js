@@ -15,6 +15,8 @@ export const paths = {
 };
 
 export const site = {
+	title: 'números números números',
+	description: 'Un proyecto independiente de análisis y reflexión.',
 	origin: 'https://numerosnumerosnumeros.com',
 	articlesBase: '/articulos',
 	locale: 'es-ES',

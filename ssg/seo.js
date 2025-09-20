@@ -62,7 +62,7 @@ export function buildArticleJsonLd(article, assetMap) {
 }
 
 export function writeRobotsTxt() {
-	const robots = `User-agent: *\nAllow: /\nSitemap: ${site.origin}/sitemap.xml\n`;
+	const robots = `User-agent: *\nAllow: /\nSitemap: ${site.origin}/sitemap.xml\nSitemap: ${site.origin}/rss.xml\n`;
 	fs.writeFileSync(path.join(paths.dist, 'robots.txt'), robots, 'utf-8');
 }
 
@@ -85,4 +85,55 @@ export function writeSitemap(articles, totalPages) {
 		'\n'
 	)}\n</urlset>`;
 	fs.writeFileSync(path.join(paths.dist, 'sitemap.xml'), sitemap, 'utf-8');
+}
+
+export function writeRSS(articles, limit = 20) {
+	const latest = articles
+		.filter((a) => !a.link && !a.isTopLevel) // only real articles
+		.sort((a, b) => new Date(b.date) - new Date(a.date))
+		.slice(0, limit);
+
+	const rssItems = latest
+		.map((a) => {
+			const url = absoluteUrlFor(a, site.origin, site.articlesBase);
+			const pubDate = new Date(a.date).toUTCString();
+
+			return `
+                <item>
+                    <title><![CDATA[${a.title}]]></title>
+                    <link>${url}</link>
+                    <guid isPermaLink="true">${url}</guid>
+                    <pubDate>${pubDate}</pubDate>
+                    ${
+											a.author
+												? `<dc:creator><![CDATA[${a.author}]]></dc:creator>`
+												: ''
+										}
+                </item>`;
+		})
+		.join('\n');
+
+	const rss = `<?xml version="1.0" encoding="UTF-8"?>
+                <rss version="2.0"
+                    xmlns:dc="http://purl.org/dc/elements/1.1/"
+                    xmlns:atom="http://www.w3.org/2005/Atom">
+                    <channel>
+                        <title><![CDATA[${site.title}]]></title>
+                        <link>${site.origin}</link>
+                        <description><![CDATA[${
+													site.description
+												}]]></description>
+                        <language>${site.locale || 'en'}</language>
+                        <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+                        <atom:link href="${
+													site.origin
+												}/rss.xml" rel="self" type="application/rss+xml"/>
+                        ${rssItems}
+                    </channel>
+                </rss>`;
+
+	fs.writeFileSync(path.join(paths.dist, 'rss.xml'), rss, 'utf-8');
+	console.log(
+		`✅ RSS feed written with ${latest.length} articles (no descriptions)`
+	);
 }
